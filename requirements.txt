@@ -1,2 +1,10 @@
 flask
 faster-whisper
+edge-tts
+Pillow
+Authlib
+requests
+python-docx
+python-pptx
+openpyxl
+pypdf
