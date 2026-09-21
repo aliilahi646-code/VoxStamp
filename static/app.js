@@ -6,6 +6,49 @@ const result = document.getElementById('result');
 const linesDiv = document.getElementById('lines');
 const lineCount = document.getElementById('line-count');
 const btn = document.getElementById('transcribe-btn');
+const dropzone = document.getElementById('dropzone');
+const audioInput = document.getElementById('audio-input');
+const dropzoneEmpty = document.getElementById('dropzone-empty');
+const dropzoneFilename = document.getElementById('dropzone-filename');
+const dropzoneFilenameText = document.getElementById('dropzone-filename-text');
+const emptyState = document.getElementById('empty-state');
+
+function showChosenFile(file) {
+  if (!file) return;
+  dropzoneEmpty.style.display = 'none';
+  dropzoneFilename.style.display = 'flex';
+  dropzoneFilenameText.textContent = file.name;
+}
+
+dropzone.addEventListener('click', function () {
+  audioInput.click();
+});
+
+audioInput.addEventListener('change', function () {
+  if (audioInput.files.length) showChosenFile(audioInput.files[0]);
+});
+
+['dragover', 'dragenter'].forEach(function (evt) {
+  dropzone.addEventListener(evt, function (e) {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+});
+
+['dragleave', 'dragend'].forEach(function (evt) {
+  dropzone.addEventListener(evt, function (e) {
+    dropzone.classList.remove('dragover');
+  });
+});
+
+dropzone.addEventListener('drop', function (e) {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    audioInput.files = e.dataTransfer.files;
+    showChosenFile(e.dataTransfer.files[0]);
+  }
+});
 
 let currentLines = [];
 let timerInterval = null;
@@ -120,6 +163,10 @@ function handleTranscribe(e) {
   const fd = new FormData(form);
   fetch('/transcribe', { method: 'POST', body: fd })
     .then(function (res) {
+      if (res.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Redirecting to login...');
+      }
       if (!res.ok) {
         return res.json().then(function (err) {
           throw new Error(err.error || 'Failed');
@@ -132,6 +179,7 @@ function handleTranscribe(e) {
       status.textContent = 'Done in ' + fmtElapsed(Date.now() - startTime) + ' -- ' + data.lines.length + ' lines, detected language: ' + data.language;
       currentLines = data.lines;
       renderLines();
+      emptyState.style.display = 'none';
       result.style.display = 'block';
     })
     .catch(function (err) {
@@ -160,12 +208,13 @@ document.getElementById('copy-btn').addEventListener('click', function () {
   setTimeout(function () { b.textContent = original; }, 1500);
 });
 
-document.getElementById('js-check').textContent = 'Script loaded OK -- ready.';
-document.getElementById('js-check').style.color = '#4a4';
+// script loaded fine -- nothing to show
 
 } catch (err) {
-  document.getElementById('js-check').textContent = 'SCRIPT ERROR: ' + err.message;
-  document.getElementById('js-check').style.color = '#f55';
-  document.getElementById('js-check').style.fontWeight = 'bold';
+  const jc = document.getElementById('js-check');
+  jc.style.display = 'block';
+  jc.textContent = 'SCRIPT ERROR: ' + err.message;
+  jc.style.color = '#f55';
+  jc.style.fontWeight = 'bold';
   console.error(err);
 }
